@@ -70,7 +70,7 @@ This project is built with a fast, modern frontend toolchain:
 - **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
 - **Language:** [TypeScript](https://www.typescriptlang.org/)
 - **Package Manager & Runtime:** [Bun](https://bun.sh/)
-- **Typography:** Geist Sans & Geist Mono by Vercel
+- **Typography:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque)
 
 ---
 

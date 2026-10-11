@@ -44,7 +44,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={bricolage.variable}>
+    <html
+      lang="en"
+      className={bricolage.variable}
+      data-scroll-behavior="smooth"
+    >
       <body>{children}</body>
     </html>
   );

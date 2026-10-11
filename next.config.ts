@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
@@ -11,6 +10,18 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/crafts/:slug",
+        destination: "/crafts/:slug/index.html",
+      },
+      {
+        source: "/crafts/:slug/",
+        destination: "/crafts/:slug/index.html",
+      },
+    ];
   },
 };
 

@@ -1,9 +1,8 @@
 import Image, { StaticImageData } from "next/image";
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import verdeImage from "@/assets/project-verde.jpg";
-import formImage from "@/assets/project-form.jpg";
-import lumaImage from "@/assets/project-luma.jpg";
+import littoralImage from "@/assets/project-littoral.jpg";
 
 export interface ProjectItem {
   title: string;
@@ -13,38 +12,20 @@ export interface ProjectItem {
   detail: string;
   type: string;
   year: string;
+  href: string;
 }
 
 export const projects: ProjectItem[] = [
   {
-    title: "Verde Botanicals",
-    category: "Brand identity · Packaging",
-    image: verdeImage,
-    description: "A fresh perspective on nature, distilled into a quiet, considered identity.",
+    title: "Littoral",
+    category: "WebGL · Three.js · Generative Art",
+    image: littoralImage,
+    description: "Two screens, one sea. A living coastline where light, water, and sky follow the time of day.",
     detail:
-      "A concept identity for botanical skincare. Earthy greens, tactile materials and restrained typography bring a sense of care to everyday rituals. The exploration includes visual identity, packaging and art direction.",
-    type: "Identity design",
+      "A real-time WebGL craft capturing a shoreline that shifts dynamically with the hour of day, complete with procedural waves, dynamic sky, sun, moon phases, stars, and atmospheric lighting.",
+    type: "Interactive Craft",
     year: "2026",
-  },
-  {
-    title: "Form & Field",
-    category: "Editorial · Art direction",
-    image: formImage,
-    description: "An independent journal celebrating the beauty of the everyday.",
-    detail:
-      "An editorial concept exploring the meeting of art, architecture and landscape. Generous space, expressive typography and an intentional visual rhythm let every story breathe. The exploration includes publication design and print art direction.",
-    type: "Editorial design",
-    year: "2026",
-  },
-  {
-    title: "Luma Objects",
-    category: "Objects · Creative exploration",
-    image: lumaImage,
-    description: "Sculptural simplicity. Everyday objects with a little more soul.",
-    detail:
-      "A lighting concept built around a single, continuous curve. A warm terracotta finish and a playful silhouette transform an everyday desk lamp into a thoughtful object. The exploration considers shape, material and atmosphere.",
-    type: "Product concept",
-    year: "2026",
+    href: "/crafts/littoral",
   },
 ];
 
@@ -64,25 +45,35 @@ export default function Projects() {
         {projects.map((project) => (
           <article className="project-card" key={project.title}>
             <div className="project-image-wrap">
-              <Image
-                className="project-image"
-                src={project.image}
-                alt={`${project.title} design concept`}
-                width={1024}
-                height={768}
-              />
+              <Link href={project.href} className="block h-full w-full" tabIndex={-1} aria-hidden="true">
+                <Image
+                  className="project-image"
+                  src={project.image}
+                  alt={`${project.title} — Two screens, one sea`}
+                  width={1024}
+                  height={768}
+                  priority
+                />
+              </Link>
             </div>
             <div className="project-info">
               <span className="project-category">{project.category}</span>
               <div className="project-title-row">
-                <h3>{project.title}</h3>
+                <h3>
+                  <Link href={project.href} className="hover:text-primary transition-colors">
+                    {project.title}
+                  </Link>
+                </h3>
                 <Button
                   variant="ghost"
                   size="icon"
+                  asChild
                   aria-label={`View ${project.title}`}
                   title={`View ${project.title}`}
                 >
-                  <ArrowUpRight />
+                  <Link href={project.href}>
+                    <ArrowUpRight />
+                  </Link>
                 </Button>
               </div>
               <p>{project.description}</p>

@@ -72,6 +72,19 @@
                 text-shadow:
                     0 2px 22px var(--glow),
                     0 0 2px rgba(0, 0, 0, 0.12);
+                transition: opacity 0.5s ease;
+            }
+            .clock.loading {
+                opacity: 0.65;
+            }
+            .clock.loading .time {
+                font-size: clamp(1.2rem, 4vw, 1.8rem);
+                letter-spacing: 0.08em;
+                animation: timeLoadingPulse 1.4s ease-in-out infinite;
+            }
+            @keyframes timeLoadingPulse {
+                0%, 100% { opacity: 0.4; }
+                50% { opacity: 0.95; }
             }
             .time {
                 font-size: clamp(2.3rem, 9vw, 3.7rem);
@@ -308,14 +321,14 @@
             aria-label="A character standing on beach sand with waves washing over his feet, the shore behind him and the sea in front. The sky, light and water follow the time of day. Drag to look around."
         ></canvas>
 
-        <div class="clock">
-            <div class="time" id="time">4:11 P.M.</div>
-            <div class="date" id="date">Saturday, October 10, 2026</div>
+        <div class="clock loading" id="clock">
+            <div class="time" id="time">Loading time…</div>
+            <div class="date" id="date"></div>
         </div>
 
         <div class="controls">
             <div class="hint" id="hint">
-                Drag to look around or up at the sky. Pinch to move closer.
+                Drag to look around. Right-click to reset view. Pinch to zoom.
             </div>
             <div class="bar">
                 <button
@@ -361,8 +374,9 @@
                         min="0"
                         max="1439"
                         step="1"
-                        value="971"
+                        value="0"
                         aria-label="Time of day"
+                        disabled
                     />
                     <div class="ticks" aria-hidden="true">
                         <span style="left: 0%">12 am</span>
@@ -1583,20 +1597,23 @@
                     Math.cos((23.8 * Math.PI) / 180),
                 );
                 var timeEl = document.getElementById("time"),
+                    dateEl = document.getElementById("date"),
+                    clockEl = document.getElementById("clock"),
                     lastLabel = "";
-                var curMin = 971,
+                var curMin = 0,
                     live = true,
-                    liveTick = 0;
-                var liveBtn = document.getElementById("live"),
-                    dateEl = document.getElementById("date");
+                    liveTick = 0,
+                    timeLoaded = false;
+                var liveBtn = document.getElementById("live");
                 function localMinutes() {
                     var d = new Date();
                     return (
                         d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60
                     );
                 }
-                function updateDate() {
-                    dateEl.textContent = new Date().toLocaleDateString(
+                function updateDate(dateObj) {
+                    var d = dateObj || new Date();
+                    dateEl.textContent = d.toLocaleDateString(
                         "en-US",
                         {
                             weekday: "long",
@@ -1609,7 +1626,7 @@
                 function setLive(on) {
                     live = on;
                     liveBtn.setAttribute("aria-pressed", on ? "true" : "false");
-                    if (on) {
+                    if (on && timeLoaded) {
                         playing = false;
                         playBtn.setAttribute("aria-pressed", "false");
                         playBtn.setAttribute("aria-label", "Play the day");
@@ -1730,8 +1747,46 @@
                     setLive(false);
                     setHour(+slider.value);
                 });
-                setHour(localMinutes());
-                slider.value = Math.floor(curMin);
+
+                async function loadCurrentTime() {
+                    var date;
+                    try {
+                        var controller = new AbortController();
+                        var timer = setTimeout(function () {
+                            controller.abort();
+                        }, 1200);
+                        var res = await fetch("https://worldtimeapi.org/api/ip", {
+                            signal: controller.signal,
+                        });
+                        clearTimeout(timer);
+                        if (res.ok) {
+                            var data = await res.json();
+                            if (data && data.datetime) {
+                                var d = new Date(data.datetime);
+                                if (!isNaN(d.getTime())) date = d;
+                            }
+                        }
+                    } catch (_) {}
+                    if (!date || isNaN(date.getTime())) {
+                        date = new Date();
+                    }
+                    return date;
+                }
+
+                async function initTime() {
+                    var d = await loadCurrentTime();
+                    timeLoaded = true;
+                    if (clockEl) clockEl.classList.remove("loading");
+                    slider.disabled = false;
+                    var m =
+                        d.getHours() * 60 +
+                        d.getMinutes() +
+                        d.getSeconds() / 60;
+                    setHour(m);
+                    slider.value = Math.floor(curMin);
+                    updateDate(d);
+                }
+                initTime();
 
                 var playing = false,
                     playBtn = document.getElementById("play");
@@ -1779,7 +1834,31 @@
                     var p = Array.from(ptrs.values());
                     return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
                 }
+                function resetCamera() {
+                    var TWO_PI = Math.PI * 2;
+                    cam.az = ((cam.az % TWO_PI) + TWO_PI) % TWO_PI;
+                    if (cam.az > Math.PI) cam.az -= TWO_PI;
+                    cam.taz = 0;
+                    cam.tp = 0.1;
+                    cam.tr = 5.6;
+                    clampCam();
+                    touched();
+                }
+
+                document.addEventListener("contextmenu", function (e) {
+                    if (e.target && e.target.closest && e.target.closest(".back-link")) {
+                        return;
+                    }
+                    e.preventDefault();
+                    resetCamera();
+                });
+
                 canvas.addEventListener("pointerdown", function (e) {
+                    if (e.button === 2) {
+                        e.preventDefault();
+                        resetCamera();
+                        return;
+                    }
                     canvas.setPointerCapture(e.pointerId);
                     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
                     if (ptrs.size === 2) pinch0 = pinchDist();
@@ -1862,7 +1941,7 @@
                         curMin = (curMin + dt * 12) % 1440;
                         slider.value = Math.floor(curMin);
                         setHour(curMin);
-                    } else if (live) {
+                    } else if (live && timeLoaded) {
                         liveTick += dt;
                         if (liveTick > 1) {
                             liveTick = 0;
